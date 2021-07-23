@@ -170,22 +170,24 @@ class AzureBlobStorageAdapter extends AbstractAdapter
     public function readStream($path)
     {
         $location = $this->applyPathPrefix($path);
-
         try {
             $response = $this->client->getBlob(
                 $this->container,
                 $location
             );
 
+            $stream = fopen('php://temp', 'w+');
+            fwrite($stream, stream_get_contents($response->getContentStream()));
+            fseek($stream, 0);
+
             return $this->normalizeBlobProperties(
                     $path,
                     $response->getProperties()
-                ) + ['stream' => $response->getContentStream()];
+                ) + ['stream' => $stream];
         } catch (ServiceException $exception) {
             if ($exception->getCode() !== 404) {
                 throw $exception;
             }
-
             return false;
         }
     }
